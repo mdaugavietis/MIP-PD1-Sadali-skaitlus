@@ -9,9 +9,10 @@ class Game:
         self.player = 0  # 0 is p1, 1 is p2
 
     def __str__(self):
-        f1 = f"Punkti: {self.points}, Gājiens: {self.player+1}. spēlētājam"
-        f2 = f"Skaitļi (indekss, skaitlis): {list(enumerate(self.numbers))}"
-        return f1+'\n'+f2
+        return f"""
+Punkti: {self.points}, Gājiens: {self.player+1}. spēlētājam
+Skaitļi (indekss, skaitlis): {list(enumerate(self.numbers))}
+        """
 
     def turn(self, mode: bool, ind: int):
         # False is take, True is split
@@ -22,7 +23,7 @@ class Game:
             if self.numbers[ind] % 2 == 1:
                 print("nevar sadalīt")
             else:
-                self.numbers[ind] //= 2 # 1 or 2
+                self.numbers[ind] //= 2
                 self.numbers.insert(ind, self.numbers[ind])
                 self.points[self.player] += self.numbers[ind] // 2
         self.player = (self.player + 1) % 2
@@ -44,3 +45,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
