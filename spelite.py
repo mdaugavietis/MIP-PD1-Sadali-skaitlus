@@ -20,6 +20,7 @@ class Game:
         if mode:
             self.points[self.player] += self.numbers[ind]
             self.numbers.pop(ind)
+            self.player = (self.player + 1) % 2
         else:
             if self.numbers[ind] % 2 == 1:
                 print("Nevar sadalīt")
@@ -27,7 +28,7 @@ class Game:
                 self.numbers[ind] //= 2
                 self.numbers.insert(ind, self.numbers[ind])
                 self.points[self.player] += self.numbers[ind] // 2
-        self.player = (self.player + 1) % 2
+                self.player = (self.player + 1) % 2
 
 
 class GameGUI:
