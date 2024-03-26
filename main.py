@@ -37,11 +37,22 @@ class Game:
                     self.points[self.player] += ind // 2
                     self.player = (self.player + 1) % 2
         print(self)
+        # Automatic turn by AI
+        if self.player == 1:
+            self.strat1()
+        
+    # Always pick MAX
+    def strat1(self):
+        for x in range(len(self.numbers)-1,-1,-1):
+            if self.numbers[x]:
+                self.turn(True, x)
+                break
 
 
 def main():
     ### GAME init
     game = Game()
+    game.strat1()
     # user input
     sequence_length = ''
     valid_sequence = list(map(str, range(15,21)))
