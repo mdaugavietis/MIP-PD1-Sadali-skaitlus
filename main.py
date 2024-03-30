@@ -4,11 +4,12 @@ import pygame
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, opponent: bool):
         self.length = 0
         self.numbers = [0, 0, 0, 0]
         self.points = [0, 0]
         self.player = 0  # 0 is p1, 1 is p2
+        self.player_vs_computer = opponent
 
     def __str__(self):
         self.f1 = f"Punkti: {self.points}, Gājiens: {self.player+1}. spēlētājam"
@@ -22,7 +23,6 @@ class Game:
             self.numbers[randint(1, 4)-1] += 1
         
     def turn(self, mode: bool, ind: int):
-        # True is take, False is split
         if self.numbers[ind] > 0:
             if mode:
                 self.numbers[ind] -= 1
@@ -38,10 +38,10 @@ class Game:
                     self.player = (self.player + 1) % 2
         print(self)
         # Automatic turn by AI
-        if self.player == 1:
+        if self.player_vs_computer and self.player == 1:
             self.strat1()
         
-    # Always pick MAX
+    # Always pick MAX strategy
     def strat1(self):
         for x in range(len(self.numbers)-1,-1,-1):
             if self.numbers[x]:
@@ -49,63 +49,50 @@ class Game:
                 break
 
 
+class GUI():
+    def __init__(self, width: int, height: int, bg_color: str, caption: str, clock: int):
+        self.clock = clock
+        self.screen_width = width
+        self.screen_height = height
+        self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        self.bg_color = bg_color
+        pygame.display.set_caption(caption)
+        
+    def prepare_rectangle(self, on_object, color, width: int, height: int, offset_x: int, offset_y: int, border_radius=0, border_width=0, top_left=-1, top_right=-1, bottom_left=-1, bottom_right=-1):
+        rectangle = pygame.Rect((offset_x, offset_y),(width, height)) #Rect
+        return pygame.draw.rect(on_object, color, rectangle, border_width, border_radius, top_left, top_right, bottom_left, bottom_right) #Rect
+    
+    def prepare_text(self, text: str, size: int, color, background=None, style=None, antialias=True):
+        font = pygame.font.Font(style, size) #Font
+        return font.render(text, antialias, color, background) #Surface
+    
+    def center_text(self, on_object, text_object):
+        text_rect = text_object.get_rect()
+        text_rect.center = on_object.center
+        return text_rect
+        
+
 def main():
     ### GAME init
-    game = Game()
-    game.strat1()
+    game = Game(True) # switch opponent
     # user input
-    sequence_length = ''
     valid_sequence = list(map(str, range(15,21)))
-    # Dictionary of rectangles
+    sequence_length = ''
+    input_done = False
+    # dictionary of rectangles
     direct: Dict[int, Dict]={}
-    flag = False
     
-    ### PYGAME setup
+    ### GUI init
     pygame.init()
-    # screen size
-    width = 1280
-    height = 720
-    screen = pygame.display.set_mode((width, height))
-    # refresh rate
     clock = pygame.time.Clock()
-    # background color
-    bg_color = "pink"
-    # name of the game
-    pygame.display.set_caption('AI')
-    
-    # default font and color
-    font_size = 50
-    font = pygame.font.Font(None, font_size)
-    color = pygame.Color(255,255,255)
-    
-    # font BIG
-    font2_size = 500
-    font2 = pygame.font.Font(None, font2_size)
-    
-    # font small
-    font3_size = 22
-    font3 = pygame.font.Font(None, font3_size)
+    gui = GUI(1280, 720, "#222831", "AI", 25)
+    center_x = int(gui.screen_width / 2)
+    center_y = int(gui.screen_height / 2)
+    # rect init for mouse events
+    sadali2 = pygame.Rect((0, 0),(0, 0))
+    sadali4 = pygame.Rect((0, 0),(0, 0))
+    restart = pygame.Rect((0, 0),(0, 0))
 
-    # surface for sequence input
-    seq_width = 520
-    seq_height = 50
-    seq_input = pygame.Surface((seq_width,seq_height))
-    
-    # surface for game info output
-    seq2_width = 1280
-    seq2_height = 100
-    seq_output = pygame.Surface((seq2_width,seq2_height))
-    
-    # buttons -> text and location
-    s2_text = font.render('Sadali 2', True, 'Red')
-    sadali2 = pygame.Rect((350,580),(250,50))
-    s4_text = font.render('Sadali 4', True, 'Red')
-    sadali4 = pygame.Rect((680,580),(250,50))
-    # game over -> text and location
-    go_text = font.render('Game over!', True, 'Red')
-    gameover = pygame.Rect((540,310),(200,50))
-    
-    
     # PYGAME loop
     running = True
     while running:
@@ -115,92 +102,87 @@ def main():
                 running = False
             
             # sequence input events
-            if flag == False:
+            if input_done == False:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_BACKSPACE:
                         sequence_length = sequence_length[:-1]
                     else:
                         if(len(sequence_length)<2):
                             sequence_length += event.unicode
-                        
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if sadali4.collidepoint(event.pos):
-                    game.turn(False, 3)
-                elif sadali2.collidepoint(event.pos):
-                    game.turn(False, 1)
-                else:
-                    for di in direct:
-                        if direct[di]['rect'].collidepoint(event.pos):
-                            game.turn(True, di)
-                            break
-        
-        # fill the screen with a color to wipe away anything from last frame
-        screen.fill(bg_color)
-
+            else:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if any(game.numbers):
+                        if sadali4.collidepoint(event.pos):
+                            game.turn(False, 3)
+                        elif sadali2.collidepoint(event.pos):
+                            game.turn(False, 1)
+                        else:
+                            for di in direct:
+                                if direct[di]['rect'].collidepoint(event.pos):
+                                    game.turn(True, di)
+                                    break
+                    else:
+                        if restart.collidepoint(event.pos):
+                            game = Game(game.player_vs_computer)
+                            sequence_length = ''
+                            input_done = False
 
         # GAME RENDERS HERE
+        gui.screen.fill(gui.bg_color)
         if sequence_length in valid_sequence:
-            flag = True
+            input_done = True
             if not game.length:
                 game.gen_numbers(int(sequence_length))
                 print(game)
             
             # Game info
-            my_text1 = font3.render(game.f1, True, 'White')
-            my_text2 = font3.render(game.f2, True, 'White')
-            screen.blit(seq_output, (0,0))
-            seq_output.fill("pink")
-            seq_output.blit(my_text1, (10,10))
-            seq_output.blit(my_text2, (10,40))
+            gui.screen.blit(gui.prepare_text(game.f1, 30, '#eeeeee'), (10, 10), area=None, special_flags=0) # Line 1
+            # gui.screen.blit(gui.prepare_text(game.f2, 30, 'White'), (10, 40), area=None, special_flags=0) # Line 2
 
             if not any(game.numbers):
                 # SCREEN 3
-                p1 = 'P1 score is: ' + str(game.points[0])
-                p2 = 'P2 score is: ' + str(game.points[1])
-                s2_text = font.render(p1, True, 'Red')
-                s4_text = font.render(p2, True, 'Red')
+                if game.points[0] > game.points[1]:
+                    result = "Uzvara :)"
+                elif game.points[0] < game.points[1]:
+                    result = "Zaudējums :("
+                else:
+                    result = "Neizšķirts"
+                text = gui.prepare_text(result, 50, 'Red')
+                gui.screen.blit(text, (center_x-int(text.get_rect().width/2), center_y-25), area=None, special_flags=0)
                 
-                pygame.draw.rect(screen, "pink", gameover)
-                screen.blit(go_text, gameover)
+                restart = gui.prepare_rectangle(gui.screen, '#00adb5', 300, 100, center_x-150, center_y+100, 5)
+                restart_text = gui.prepare_text("ATKĀRTOT", 50, '#eeeeee')
+                gui.screen.blit(restart_text, gui.center_text(restart, restart_text), area=None, special_flags=0)
             else:
                 # SCREEN 2
                 x=90
                 y=140
                 for n in range(len(game.numbers)):
-                    my_text = font.render(str(game.numbers[n]), True, 'Red')
-                    my_text2 = font2.render(str(n+1), True, 'Red')
+                    my_text1 = gui.prepare_text(str(game.numbers[n]), 50, '#222831') #small
+                    my_text2 = gui.prepare_text('+' + str(n+1), 250, '#eeeeee') #BIG
                     
-                    direct[n] = {'rect': pygame.Rect((x,y),(200,300)), 'id': game.numbers[n]}
-                    pygame.draw.rect(screen, color, direct[n]['rect'])
+                    direct[n] = {'rect': gui.prepare_rectangle(gui.screen, '#00adb5', 200, 155, x, y, 0, 0, 0, 10, 10, 0), 'id': game.numbers[n]}
                     
-                    screen.blit(my_text, direct[n]['rect'])
-                    screen.blit(my_text2, direct[n]['rect'])
+                    gui.screen.blit(my_text1, direct[n]['rect'], area=None, special_flags=0)
+                    gui.screen.blit(my_text2, direct[n]['rect'], area=None, special_flags=0)
                     
                     x+=300
-
-
-            # Add buttonz
-            pygame.draw.rect(screen, color, sadali2)
-            screen.blit(s2_text, sadali2)
-            pygame.draw.rect(screen, color, sadali4)
-            screen.blit(s4_text, sadali4)
-        
+            
+                # Add buttonz
+                sadali2 = gui.prepare_rectangle(gui.screen, '#00adb5', 200, 100, 390, 350, 10)
+                sadali4 = gui.prepare_rectangle(gui.screen, '#00adb5', 200, 100, 990, 350, 10)
+                text2 = gui.prepare_text("2/2 (+0)", 50, '#eeeeee')
+                text4 = gui.prepare_text("4/2 (+1)", 50, '#eeeeee')
+                gui.screen.blit(text2, gui.center_text(sadali2, text2), area=None, special_flags=0)
+                gui.screen.blit(text4, gui.center_text(sadali4, text4), area=None, special_flags=0)
         else:
             # SCREEN 1
-            title = "Ievadi cik skaitļus ģenerēt: "
-            x = int(width / 2 - seq_width / 2)
-            y = int(height / 2 - seq_height / 2)
-            my_text = font.render(title + sequence_length, True, 'White')
-            screen.blit(seq_input, (x,y))
-            seq_input.fill("pink")
-            seq_input.blit(my_text, (10,10))
+            title = "Ievadi cik skaitļus ģenerēt intervālā no 15 līdz 20: "
+            gui.screen.blit(gui.prepare_text(title + sequence_length, 60, '#eeeeee'), (center_x-530, center_y-30), area=None, special_flags=0)
 
-        
-        # flip() the display to put your work on screen
+
         pygame.display.flip()
-
-        # limits FPS to 60
-        clock.tick(60)
+        clock.tick(gui.clock)
         
 
     pygame.quit()
