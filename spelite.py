@@ -1,6 +1,7 @@
 """Tk GUI module"""
 import tkinter as tk
 from functools import partial
+from typing import List
 import game
 
 
@@ -53,71 +54,75 @@ class GameGUI:
         self.numbers_frame = tk.Frame(self.master, bg="#222831")
         self.numbers_frame.pack()
 
+        self.mode_frame = tk.Frame(self.master, bg="#222831")
+        self.mode_frame.pack()
+
         self.update_ui()
 
     def update_ui(self):
-        self.info_label.config(text=str(self.game))
+        info: str
+        if not self.game.done:
+            info = f"""Punkti:
+                1. spēlētājs: {self.game.points[0]}
+                2. spēlētājs: {self.game.points[1]}
+
+                Gājiens: {self.game.player+1}. spēlētājam"""
+        else:
+            info = f"""Spēle beidzās ar rezultātu:
+                1. spēlētājs: {self.game.points[0]}
+                2. spēlētājs: {self.game.points[1]}
+
+                """
+        self.info_label.config(text=info)
 
         for widget in self.numbers_frame.winfo_children():
             widget.destroy()
 
-        turns = self.game.available_turns()
-        for number, amount in enumerate(self.game.numbers):
-            amount_label = tk.Label(
+        indexed_turns: List[List[game.Turn]] = [list() for _ in self.game.numbers]
+        for turn in self.game.available_turns(include_index=True):
+            indexed_turns[turn.index].append(turn)
+
+        for index, turns in enumerate(indexed_turns):
+            number_button = tk.Button(
                 self.numbers_frame,
-                text=f'Daudzums: {amount}',
-                bg="#393e46",
+                text=f"{turns[0].number + 1}",
+                command=partial(self.choose_mode, index, turns),
+                bg="#00adb5",
                 fg="#eeeeee",
             )
-            amount_label.grid(row=0, column=number, padx=5, pady=5)
+            number_button.grid(row=index // 8, column=index % 8, padx=5, pady=5)
 
-            number_label = tk.Label(
-                self.numbers_frame,
-                text=f"Skaitlis: {number+1}",
-                bg="#393e46",
-                fg="#eeeeee",
-            )
-            number_label.grid(row=1, column=number, padx=5, pady=5)
+    def choose_mode(self, selected_index: int, modes: List[game.Turn]):
+        for index, button in enumerate(self.numbers_frame.winfo_children()):
+            col: str
+            if index == selected_index:
+                col = "#2eeeee"
+            else:
+                col = "#00adb5"
+            button.config(bg=col)
+        for widget in self.mode_frame.winfo_children():
+            widget.destroy()
 
-            turn = game.Turn(number, game.Turn.TAKE)
-            number_take = tk.Button(
-                self.numbers_frame,
-                text="Paņemt",
+        for index, turn in enumerate(modes):
+            label: str
+            if turn.mode == game.Turn.TAKE:
+                label = "Paņemt"
+            else:
+                label = "Sadalīt"
+
+            button = tk.Button(
+                self.mode_frame,
+                text=label,
                 command=partial(self.turn, turn),
                 bg="#00adb5",
                 fg="#eeeeee",
             )
-            if turn not in turns:
-                number_take.configure(state="disabled")
-            number_take.grid(row=2, column=number, padx=5, pady=5)
-
-            if number % 2 == 1:
-                turn = game.Turn(number, game.Turn.SPLIT)
-                number_split = tk.Button(
-                    self.numbers_frame,
-                    text="Sadalīt",
-                    command=partial(self.turn, turn),
-                    bg="#00adb5",
-                    fg="#eeeeee",
-                )
-                if turn not in turns:
-                    number_split.configure(state="disabled")
-                number_split.grid(row=3, column=number, padx=5, pady=5)
-
-        if sum(self.game.numbers) <= 0:
-            self.display_result()
-
-    def display_result(self):
-        result_label = tk.Label(
-            self.master,
-            text=f"Spēle beidzās ar rezultātu {self.game.points}",
-            bg="#222831",
-            fg="#eeeeee",
-        )
-        result_label.pack()
+            button.grid(row=0, column=index, padx=5, pady=5)
 
     def turn(self, turn: game.Turn):
         self.game.do_turn(turn)
+        for widget in self.mode_frame.winfo_children():
+            widget.destroy()
         self.update_ui()
 
     def restart(self):
@@ -130,7 +135,7 @@ class GameGUI:
 
 def main():
     root = tk.Tk()
-    root.geometry("600x140")
+    root.geometry("800x300")
     sequence_length = 15
     GameGUI(root, sequence_length)
     root.mainloop()
