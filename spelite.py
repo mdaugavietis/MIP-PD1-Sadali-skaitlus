@@ -166,10 +166,18 @@ class GameGUI:
 def main():
     root = tk.Tk()
     root.geometry("800x300")
-    sequence_length = 15
-    GameGUI(root, sequence_length)
-    root.mainloop()
+    sequence_length = number_count
+    game_gui=GameGUI(root, sequence_length)
 
+    computer_players = [None, None]
+    if player1_mode != "Cilvēks":
+        computer_players[0] = game.MinMax(player_number=0, search_depth=4)
+    if player2_mode != "Cilvēks":
+        computer_players[1] = game.MinMax(player_number=1, search_depth=4)
+    
+    game_gui.restart_with_computer(computer_players)
+    
+    root.mainloop()
 
 if __name__ == "__main__":
     main()
