@@ -7,6 +7,8 @@ def start_game():
     print("Spēlētājs 1:", player1_mode)
     print("Spēlētājs 2:", player2_mode)
     print("Ciparu skaits:", number_count)
+    root.detroy()
+    spelite.main(player1_mode, player2_mode, number_count)
 
 root = tk.Tk()
 root.title("Spēles izvēlne")
