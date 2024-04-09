@@ -1,8 +1,10 @@
 """Game logic and algorithm module"""
 from random import randint
 from dataclasses import dataclass
-from typing import List, Callable
+from typing import List
 from abc import ABC, abstractmethod
+from typing import Tuple
+
 
 
 @dataclass
@@ -59,7 +61,9 @@ class Game:
                     turns.append(Turn(Turn.SPLIT, number, index))
         return turns
 
-    def do_turn(self, turn: Turn):  # Assumes the given turn is valid(from method above)
+    def do_turn(
+            self,
+            turn: Turn):  # Assumes the given turn is valid(from method above)
         """Does a turn which modifies game state"""
         if self.done:
             return
@@ -89,41 +93,104 @@ class Game:
             self.done = True
 
 
+class GameNode:
+
+    def __init__(self, game: Game, turn: Turn | None, depth: int):
+        self.estimate = 0
+        self.game = game
+        self.turn = turn
+        self.children = []
+        if depth > 0:
+            for new_turn in self.game.available_turns():
+                tmp_game = game.copy()
+                tmp_game.do_turn(new_turn)
+                self.children.append(GameNode(tmp_game, new_turn, depth - 1))
+
+    def do_estimate(self, maximize: bool):
+        if len(self.children) == 0:
+            self.estimate = self.game.points[0] - self.game.points[1]
+            return
+
+        if maximize:
+            self.estimate = -1000
+        else:
+            self.estimate = 1000
+
+        for state in self.children:
+            state.do_estimate(not maximize)
+            if maximize:
+                self.estimate = max(self.estimate, state.estimate)
+            else:
+                self.estimate = min(self.estimate, state.estimate)
+
+
 def other_player_num(number: int):
     return (number + 1) % 2
 
 
 class Player(ABC):
+
     @abstractmethod
     def choose_turn(self, game: Game) -> Turn:
         ...
 
 
 class MinMax(Player):
+
     def __init__(self, player_number: int, search_depth: int):
         self.number = player_number
         self.search_depth = search_depth
 
-    def heuristic(self, game: Game) -> int:
-        return game.points[self.number] - game.points[other_player_num(self.number)]
-
     def choose_turn(self, game: Game) -> Turn:
-        best_estimate: int = -1_000_000
+        root = GameNode(game.copy(), None, self.search_depth)
+
+        root.do_estimate(self.number == 0)
+
         best_turn: Turn
-
-        for turn in game.available_turns(include_index=False):
-            subgame = game.copy()
-            subgame.do_turn(turn)
-            if self.search_depth >= 1 and not subgame.done:
-                other_player = MinMax(
-                    other_player_num(self.number), self.search_depth - 1
-                )
-                other_turn = other_player.choose_turn(subgame)
-                subgame.do_turn(other_turn)
-
-            subgame_estimate = self.heuristic(subgame)
-            if subgame_estimate > best_estimate:
-                best_estimate = subgame_estimate
-                best_turn = turn
+        for state in root.children:
+            if state.estimate == root.estimate:
+                best_turn = state.turn
 
         return best_turn
+
+class AlphaBeta(Player):
+  def __init__(self, player_number: int, search_depth: int):
+      self.number = player_number
+      self.search_depth = search_depth
+
+  def choose_turn(self, game: Game) -> Turn:
+      root = GameNode(game.copy(), None, self.search_depth)
+      _, best_turn = self.minimax(root, -float('inf'), float('inf'), self.number == 0)
+      return best_turn
+
+  def minimax(self, node: GameNode, alpha: float, beta: float, maximize: bool) -> Tuple[float, Turn]:
+      if len(node.children) == 0:
+          return self.evaluate(node), node.turn
+
+      if maximize:
+          value = -float('inf')
+          best_turn = None
+          for state in node.children:
+              child_value, _ = self.minimax(state, alpha, beta, False)
+              if child_value > value:
+                  value = child_value
+                  best_turn = state.turn
+              alpha = max(alpha, value)
+              if beta <= alpha:
+                  break
+          return value, best_turn
+      else:
+          value = float('inf')
+          best_turn = None
+          for state in node.children:
+              child_value, _ = self.minimax(state, alpha, beta, True)
+              if child_value < value:
+                  value = child_value
+                  best_turn = state.turn
+              beta = min(beta, value)
+              if beta <= alpha:
+                  break
+          return value, best_turn
+
+  def evaluate(self, node: GameNode) -> float:
+      return node.game.points[0] - node.game.points[1]
