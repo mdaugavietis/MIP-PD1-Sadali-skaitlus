@@ -10,6 +10,7 @@ class GameGUI:
         self.master = master
         self.master.configure(bg="#222831")
         self.game = game.Game(sequence_length)
+        self.computer_players: List[game.Player | None] = [None, None]
         self.create_widgets()
 
     def create_widgets(self):
@@ -31,8 +32,20 @@ class GameGUI:
         self.actionmenu = tk.Menu(self.menuBar, tearoff=0)
         self.importsubgame = tk.Menu(self.actionmenu, tearoff=0)
         self.importsubnumber = tk.Menu(self.actionmenu, tearoff=0)
-        self.importsubgame.add_command(label="player VS player")
-        self.importsubgame.add_command(label="player VS computer")
+        self.importsubgame.add_command(
+            label="MinMax pret cilvēku",
+            command=partial(
+                self.restart_with_computer,
+                [game.MinMax(player_number=0, search_depth=4), None],
+            ),
+        )
+        self.importsubgame.add_command(
+            label="Cilvēks pret MinMax",
+            command=partial(
+                self.restart_with_computer,
+                [None, game.MinMax(player_number=1, search_depth=4)],
+            ),
+        )
 
         for sequence_length in range(15, 21):
             self.importsubnumber.add_command(
@@ -78,19 +91,32 @@ class GameGUI:
         for widget in self.numbers_frame.winfo_children():
             widget.destroy()
 
-        indexed_turns: List[List[game.Turn]] = [list() for _ in self.game.numbers]
-        for turn in self.game.available_turns(include_index=True):
-            indexed_turns[turn.index].append(turn)
-
-        for index, turns in enumerate(indexed_turns):
-            number_button = tk.Button(
+        if self.computer_players[self.game.player] is not None and not self.game.done:
+            computer_turn_button = tk.Button(
                 self.numbers_frame,
-                text=f"{turns[0].number + 1}",
-                command=partial(self.choose_mode, index, turns),
+                text="Izpildīt datora gājienu",
+                command=partial(
+                    self.turn,
+                    self.computer_players[self.game.player].choose_turn(self.game),
+                ),
                 bg="#00adb5",
                 fg="#eeeeee",
             )
-            number_button.grid(row=index // 8, column=index % 8, padx=5, pady=5)
+            computer_turn_button.pack()
+        else:
+            indexed_turns: List[List[game.Turn]] = [list() for _ in self.game.numbers]
+            for turn in self.game.available_turns(include_index=True):
+                indexed_turns[turn.index].append(turn)
+
+            for index, turns in enumerate(indexed_turns):
+                number_button = tk.Button(
+                    self.numbers_frame,
+                    text=f"{turns[0].number + 1}",
+                    command=partial(self.choose_mode, index, turns),
+                    bg="#00adb5",
+                    fg="#eeeeee",
+                )
+                number_button.grid(row=index // 8, column=index % 8, padx=5, pady=5)
 
     def choose_mode(self, selected_index: int, modes: List[game.Turn]):
         for index, button in enumerate(self.numbers_frame.winfo_children()):
@@ -125,12 +151,16 @@ class GameGUI:
             widget.destroy()
         self.update_ui()
 
-    def restart(self):
-        self.restart_with_new_count(len(self.game.numbers))
-
     def restart_with_new_count(self, count):
         self.game = game.Game(count)
         self.update_ui()
+
+    def restart(self):
+        self.restart_with_new_count(len(self.game.numbers))
+
+    def restart_with_computer(self, computer_players: List[game.Player | None]):
+        self.computer_players = computer_players
+        self.restart()
 
 
 def main():

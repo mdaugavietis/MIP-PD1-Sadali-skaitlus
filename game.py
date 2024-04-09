@@ -1,7 +1,8 @@
 """Game logic and algorithm module"""
 from random import randint
 from dataclasses import dataclass
-from typing import List
+from typing import List, Callable
+from abc import ABC, abstractmethod
 
 
 @dataclass
@@ -29,6 +30,15 @@ class Game:
         self.points = [0, 0]
         self.player = 0  # 0 is p1, 1 is p2
         self.done = False
+
+    def copy(self):
+        new = Game()
+        new.counts = self.counts[:]
+        new.numbers = self.numbers[:]
+        new.points = self.points[:]
+        new.player = self.player
+        new.done = self.done
+        return new
 
     def available_turns(self, include_index=False) -> List[Turn]:
         """Gets available turns for current game state"""
@@ -66,13 +76,54 @@ class Game:
             new = turn.number // 2
             self.counts[new] += 2
             if turn.index is None:
-                self.numbers.append(new, new)
+                self.numbers.append(new)
+                self.numbers.append(new)
             else:
                 self.numbers.insert(turn.index, new)
                 self.numbers.insert(turn.index, new)
             self.points[self.player] += turn.number // 2
 
-        self.player = (self.player + 1) % len(self.points)
+        self.player = other_player_num(self.player)
 
         if sum(self.counts) <= 0:
             self.done = True
+
+
+def other_player_num(number: int):
+    return (number + 1) % 2
+
+
+class Player(ABC):
+    @abstractmethod
+    def choose_turn(self, game: Game) -> Turn:
+        ...
+
+
+class MinMax(Player):
+    def __init__(self, player_number: int, search_depth: int):
+        self.number = player_number
+        self.search_depth = search_depth
+
+    def heuristic(self, game: Game) -> int:
+        return game.points[self.number] - game.points[other_player_num(self.number)]
+
+    def choose_turn(self, game: Game) -> Turn:
+        best_estimate: int = -1_000_000
+        best_turn: Turn
+
+        for turn in game.available_turns(include_index=False):
+            subgame = game.copy()
+            subgame.do_turn(turn)
+            if self.search_depth >= 1 and not subgame.done:
+                other_player = MinMax(
+                    other_player_num(self.number), self.search_depth - 1
+                )
+                other_turn = other_player.choose_turn(subgame)
+                subgame.do_turn(other_turn)
+
+            subgame_estimate = self.heuristic(subgame)
+            if subgame_estimate > best_estimate:
+                best_estimate = subgame_estimate
+                best_turn = turn
+
+        return best_turn
