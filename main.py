@@ -70,12 +70,12 @@ class GameGUI:
                 command=partial(self.restart_with_new_count, sequence_length),
             )
 
-        self.actionmenu.add_cascade(menu=self.importsubgame, label="Game mode")
+        self.actionmenu.add_cascade(menu=self.importsubgame, label="Spēles režīms")
         self.actionmenu.add_cascade(menu=self.importsubnumber,
-                                    label="Number count")
+                                    label="Ciparu skaits")
 
-        self.menuBar.add_cascade(menu=self.filemenu, label="Game")
-        self.menuBar.add_cascade(menu=self.actionmenu, label="Options")
+        self.menuBar.add_cascade(menu=self.filemenu, label="Spēlēt")
+        self.menuBar.add_cascade(menu=self.actionmenu, label="Iestatījumi")
 
         self.master.config(menu=self.menuBar)
 
