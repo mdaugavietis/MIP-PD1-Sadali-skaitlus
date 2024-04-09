@@ -1,8 +1,14 @@
 # Mākslīgā intelekta pamatu Praktiskais darbs #1
-## Papildu prasības programmatūrai 
+## Palaist PD
+Vajadzīgs python3.10 intepretētājs ar tkinter atbalstu.
+
+Lai palaistu, izmantot komandu ``python3 main.py`` projekta mapē.
+
+Zemāk redzami mums dotie nosacījumi.
+### Papildu prasības programmatūrai 
 Spēles sākumā cilvēks-spēlētājs norāda spēlē izmantojamas skaitļu virknes garumu, kas var būt diapazonā no 15 līdz 20 skaitļiem. Spēles programmatūra gadījuma ceļā saģenerē skaitļu virkni atbilstoši uzdotajam garumam, tajā iekļaujot skaitļus 1, 2, 3 un 4. 
 
-## Spēles apraksts 
+### Spēles apraksts 
 Spēles sākumā ir dota ģenerētā skaitļu virkne. Katram spēlētājam ir 0 punktu. Spēlētāji izpilda gājienus secīgi. Gājiena laikā spēlētājs: 
 * var paņemt jebkuru skaitli no virknes un pieskaitīt to savam punktu skaitam;  
 * sadalīt «2» divos skaitļos «1» un «1», bet par to neiegūt punktus; 
