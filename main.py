@@ -3,9 +3,11 @@ import tkinter as tk
 from functools import partial
 from typing import List
 import game
+import startWindow
 
 
 class GameGUI:
+
     def __init__(self, master, sequence_length=15):
         self.master = master
         self.master.configure(bg="#222831")
@@ -21,13 +23,13 @@ class GameGUI:
         self.actionmenu = tk.Menu(self.menuBar, tearoff=0)
 
         self.filemenu = tk.Menu(self.menuBar, tearoff=0)
-        self.filemenu.add_command(label="Restart", command=self.restart)
+        self.filemenu.add_command(label="Atjaunot", command=self.restart)
         self.filemenu.add_separator()
-        self.filemenu.add_command(label="Exit", command=exit)
+        self.filemenu.add_command(label="Iziet", command=exit)
 
         self.actionmenu = tk.Menu(self.menuBar, tearoff=0)
-        self.actionmenu.add_command(label="Game mode")
-        self.actionmenu.add_command(label="Number count")
+        self.actionmenu.add_command(label="Spēles veids")
+        self.actionmenu.add_command(label="Ciparu skaits")
 
         self.actionmenu = tk.Menu(self.menuBar, tearoff=0)
         self.importsubgame = tk.Menu(self.actionmenu, tearoff=0)
@@ -47,6 +49,21 @@ class GameGUI:
             ),
         )
 
+        self.importsubgame.add_command(
+            label="AlphaBeta pret cilvēku",
+            command=partial(
+                self.restart_with_computer,
+                [game.AlphaBeta(player_number=0, search_depth=4), None],
+            ),
+        )
+        self.importsubgame.add_command(
+            label="Cilvēks pret AlphaBeta",
+            command=partial(
+                self.restart_with_computer,
+                [None, game.AlphaBeta(player_number=1, search_depth=4)],
+            ),
+        )
+
         for sequence_length in range(15, 21):
             self.importsubnumber.add_command(
                 label=str(sequence_length),
@@ -54,14 +71,18 @@ class GameGUI:
             )
 
         self.actionmenu.add_cascade(menu=self.importsubgame, label="Game mode")
-        self.actionmenu.add_cascade(menu=self.importsubnumber, label="Number count")
+        self.actionmenu.add_cascade(menu=self.importsubnumber,
+                                    label="Number count")
 
         self.menuBar.add_cascade(menu=self.filemenu, label="Game")
         self.menuBar.add_cascade(menu=self.actionmenu, label="Options")
 
         self.master.config(menu=self.menuBar)
 
-        self.info_label = tk.Label(self.master, text="", bg="#222831", fg="#eeeeee")
+        self.info_label = tk.Label(self.master,
+                                   text="",
+                                   bg="#222831",
+                                   fg="#eeeeee")
         self.info_label.pack()
 
         self.numbers_frame = tk.Frame(self.master, bg="#222831")
@@ -91,20 +112,24 @@ class GameGUI:
         for widget in self.numbers_frame.winfo_children():
             widget.destroy()
 
-        if self.computer_players[self.game.player] is not None and not self.game.done:
+        if self.computer_players[
+                self.game.player] is not None and not self.game.done:
             computer_turn_button = tk.Button(
                 self.numbers_frame,
                 text="Izpildīt datora gājienu",
                 command=partial(
                     self.turn,
-                    self.computer_players[self.game.player].choose_turn(self.game),
+                    self.computer_players[self.game.player].choose_turn(
+                        self.game),
                 ),
                 bg="#00adb5",
                 fg="#eeeeee",
             )
             computer_turn_button.pack()
         else:
-            indexed_turns: List[List[game.Turn]] = [list() for _ in self.game.numbers]
+            indexed_turns: List[List[game.Turn]] = [
+                list() for _ in self.game.numbers
+            ]
             for turn in self.game.available_turns(include_index=True):
                 indexed_turns[turn.index].append(turn)
 
@@ -116,7 +141,10 @@ class GameGUI:
                     bg="#00adb5",
                     fg="#eeeeee",
                 )
-                number_button.grid(row=index // 8, column=index % 8, padx=5, pady=5)
+                number_button.grid(row=index // 8,
+                                   column=index % 8,
+                                   padx=5,
+                                   pady=5)
 
     def choose_mode(self, selected_index: int, modes: List[game.Turn]):
         for index, button in enumerate(self.numbers_frame.winfo_children()):
@@ -125,7 +153,7 @@ class GameGUI:
                 col = "#2eeeee"
             else:
                 col = "#00adb5"
-            button.config(bg=col)
+            button.configure(bg=col)
         for widget in self.mode_frame.winfo_children():
             widget.destroy()
 
@@ -158,26 +186,33 @@ class GameGUI:
     def restart(self):
         self.restart_with_new_count(len(self.game.numbers))
 
-    def restart_with_computer(self, computer_players: List[game.Player | None]):
+    def restart_with_computer(self,
+                              computer_players: List[game.Player | None]):
         self.computer_players = computer_players
         self.restart()
 
 
-def main():
+def main(player1_mode, player2_mode, number_count):
+    sequence_length = number_count
     root = tk.Tk()
     root.geometry("800x300")
-    sequence_length = number_count
-    game_gui=GameGUI(root, sequence_length)
+    game_gui = GameGUI(root, sequence_length)
 
     computer_players = [None, None]
     if player1_mode != "Cilvēks":
         computer_players[0] = game.MinMax(player_number=0, search_depth=4)
+        if player2_mode != "MinMax":
+          computer_players[0] = game.AlphaBeta(player_number=1, search_depth=4)
     if player2_mode != "Cilvēks":
         computer_players[1] = game.MinMax(player_number=1, search_depth=4)
-    
+        if player2_mode != "MinMax":
+          computer_players[1] = game.AlphaBeta(player_number=1, search_depth=4)
+
     game_gui.restart_with_computer(computer_players)
-    
-    root.mainloop()
+
 
 if __name__ == "__main__":
+    root = tk.Tk()
+    root.title("Main Window")
     main()
+    root.mainloop()
